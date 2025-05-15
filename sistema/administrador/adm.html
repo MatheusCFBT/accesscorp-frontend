@@ -43,7 +43,7 @@
                 </div>
                 <div id="administradorForm" class="form-container" style="display: none;">
                     <h2>Cadastro de Administrador</h2>
-                    <form id="administradorForm">
+                    <form id="formCadastroAdministrador">
                         <div class="circular-image-container">
                             <img id="previewFoto" src="" alt="" class="circular-image">
                             <label for="foto">
@@ -60,6 +60,9 @@
 
                         <label for="email">Email:</label>
                         <input type="email" id="email" name="email"><br><br>
+
+                        <label for="senha">Senha:</label>
+                        <input type="text" id="senha" name="senha"><br><br>
 
                         <label for="telefone">Telefone:</label>
                         <input type="tel" id="telefone" name="telefone"><br><br>
@@ -98,7 +101,7 @@
                                 <th>Ações</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="administradorTableBody">
                         </tbody>
                     </table>
                 </div>
