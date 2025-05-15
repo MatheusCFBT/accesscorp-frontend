@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "https://jspm.dev/uuid";
 
 document.addEventListener('DOMContentLoaded', () => {
+
     const menuItems = document.querySelectorAll('.menu li');
     const sections = document.querySelectorAll('.section');
     const cadastrarAdministradorBtn = document.getElementById('cadastrarAdministrador');
@@ -10,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const administradorTableBody = document.querySelector('#administradorTable tbody');
     const pesquisaInput = document.getElementById('pesquisa');
     const gerarQrCodeBtn = document.getElementById('gerarQrCode');
+    const administradorSection = document.getElementById("administrador");
+
 
     // Entregas Elements
     const cadastrarEntregaBtn = document.getElementById('cadastrarEntrega');
@@ -39,10 +42,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return cpf;
     }
 
+    cadastrarAdministradorBtn.addEventListener("click", () => {
+    document.getElementById("formCadastroAdministrador").style.display = "block"; // mostra o formulário
+});
+
+
     // Function to format phone number
     function formatPhoneNumber(phoneNumber) {
         phoneNumber = phoneNumber.replace(/\D/g, ''); // Remove non-numeric characters
-        phoneNumber = phoneNumber.replace(/^(\d{2})(\d)/g, '($1) $2'); // Add area code parentheses
         phoneNumber = phoneNumber.replace(/(\d{4})(\d)/, '$1-$2'); // Add hyphen after the first 4 digits
         return phoneNumber;
     }
@@ -93,74 +100,247 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    cadastrarAdministradorBtn.addEventListener('click', () => {
-        administradorForm.style.display = 'block';
+    document.getElementById("cadastrarAdministrador").addEventListener("click", function () {
+    document.getElementById("administradorForm").style.display = "block";
+});
+
+document.getElementById("cancelarCadastro").addEventListener("click", function () {
+    document.getElementById("administradorForm").style.display = "none";
+});
+
+document.getElementById("foto").addEventListener("change", function () {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            document.getElementById("previewFoto").src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+    const tabelaBody = document.querySelector("#administradorTableBody");
+
+    if (!administradorSection || !tabelaBody) {
+        console.error("Elemento da seção ou da tabela não encontrado.");
+        return;
+    }
+
+    async function getAdministradores() {
+        try {
+            const tokenData = JSON.parse(localStorage.getItem("authData"));
+            if (!tokenData || !tokenData.accessToken) {
+                alert("Você precisa estar logado para visualizar administradores.");
+                return;
+            }
+
+            const accessToken = tokenData.accessToken;
+
+            const response = await fetch("https://localhost:7100/users/v1/administrator/view-all", {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Erro ao buscar administradores.");
+            }
+
+            const result = await response.json();
+
+            const administradores = Array.isArray(result.data) ? result.data : [];
+
+            tabelaBody.innerHTML = "";
+        
+            console.log("Resultado da API:", result);
+            console.log("Dados dos administradores:", result.data);
+
+            administradores.forEach((admin, index) => {
+                if (!admin || typeof admin !== "object") {
+                    console.warn(`Administrador inválido no índice ${index}:`, admin);
+                    return; // pula esse item
+                }                
+                const tr = document.createElement("tr");
+
+                const tdNome = document.createElement("td");
+                tdNome.textContent = `${admin.name} ${admin.lastName}`;
+
+                const tdApartamento = document.createElement("td");
+                tdApartamento.textContent = admin.houseNumber;
+
+                const tdAcoes = document.createElement("td");
+                tdAcoes.innerHTML = `
+                    <button class="editar-btn" data-email="${admin.email}">Editar</button>
+                    <button>Remover</button>
+                `;
+                tr.appendChild(tdNome);
+                tr.appendChild(tdApartamento);
+                tr.appendChild(tdAcoes);
+
+                tabelaBody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error("Erro ao carregar administradores:", error);
+        }
+    }
+
+    tabelaBody.addEventListener("click", async function (e) {
+    if (e.target.classList.contains("editar-btn")) {
+        const email = e.target.getAttribute("data-email");
+
+        try {
+            const tokenData = JSON.parse(localStorage.getItem("authData"));
+            if (!tokenData || !tokenData.accessToken) {
+                alert("Você precisa estar logado para editar um administrador.");
+                return;
+            }
+
+            const accessToken = tokenData.accessToken;
+
+            const response = await fetch(`https://localhost:7100/users/v1/administrator/view/${email}`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`
+                }
+            });
+
+            if (!response.ok) throw new Error("Erro ao buscar dados do administrador.");
+
+            const result = await response.json();
+            const admin = result.data;
+
+            // Preenche o formulário com os dados
+            document.getElementById("nome").value = admin.name;
+            document.getElementById("sobrenome").value = admin.lastName;
+            document.getElementById("email").value = admin.email;
+            document.getElementById("telefone").value = formatPhoneNumber(admin.phone);
+            document.getElementById("cpf").value = formatCPF(admin.cpf);
+            document.getElementById("cep").value = admin.cep;
+            document.getElementById("apartamento").value = admin.houseNumber;
+
+            document.getElementById("formCadastroAdministrador").setAttribute("data-modo", "editar");
+            document.getElementById("formCadastroAdministrador").setAttribute("data-email", admin.email);
+            document.getElementById("formCadastroAdministrador").style.display = "block";
+        } catch (err) {
+            alert("Erro ao buscar administrador: " + err.message);
+        }
+    }
+});
+    
+    const observer = new MutationObserver(() => {
+        if (administradorSection.classList.contains("active")) {
+            getAdministradores();
+        }
     });
 
-    cancelarCadastroBtn.addEventListener('click', () => {
-        administradorForm.style.display = 'none';
-        administradorForm.reset();
-        // Clear the photo preview and show the upload icon
-        document.getElementById('previewFoto').src = '';
-        document.getElementById('uploadIcon').style.display = 'block';
-    });
 
-    administradorForm.addEventListener('submit', function (event) {
-        event.preventDefault();
+    observer.observe(administradorSection, { attributes: true, attributeFilter: ["class"] });
 
-        const nome = document.getElementById('nome').value;
-        const sobrenome = document.getElementById('sobrenome').value;
-        const email = document.getElementById('email').value;
-        const telefone = document.getElementById('telefone').value;
-        const cpf = document.getElementById('cpf').value;
-        const cep = document.getElementById('cep').value;      
-        const apartamento = document.getElementById('apartamento').value;
-        const fotoInput = document.getElementById('foto').files[0];
+    if (administradorSection.classList.contains("active")) {
+        getAdministradores();
+    }
 
-        if (!nome || !apartamento) {
-            alert('Nome e Apartamento são campos obrigatórios.');
+    console.log(JSON.parse(localStorage.getItem("authData")));
+
+document.getElementById("formCadastroAdministrador").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    // Verifica se há token no localStorage
+    const tokenData = JSON.parse(localStorage.getItem("authData"));
+    if (!tokenData || !tokenData.accessToken) {
+        alert("Você precisa estar logado para cadastrar um administrador.");
+        return;
+    }
+
+    const accessToken = tokenData.accessToken;
+
+    const nome = document.getElementById("nome").value;
+    const sobrenome = document.getElementById("sobrenome").value;
+    const email = document.getElementById("email").value;
+    const senha = document.getElementById("senha").value;
+    const telefone = document.getElementById("telefone").value.replace(/\D/g, '');
+    const cpf = document.getElementById("cpf").value.replace(/\D/g, '');
+    const cep = document.getElementById("cep").value.replace(/\D/g, '');
+    const apartamento = document.getElementById("apartamento").value;
+    const fotoInput = document.getElementById("foto");
+
+   function convertFileToBase64(fileInput) {
+    return new Promise((resolve, reject) => {
+        if (!fileInput.files || !fileInput.files[0]) {
+            resolve(""); // Sem arquivo, retorna string vazia
             return;
         }
 
-        let fotoURL = '';
-        if (fotoInput) {
-            const reader = new FileReader();
-            reader.onloadend = function () {
-                fotoURL = reader.result;
-                salvarAdministrador(nome, email, telefone,  cpf, cep, apartamento, fotoURL);
-            }
-            reader.readAsDataURL(fotoInput);
-        } else {
-            salvarAdministrador(nome, email, telefone, cpf, cep, apartamento,  fotoURL);
-        }
+        const file = fileInput.files[0];
+        const reader = new FileReader();
 
-    });
-
-    function salvarAdministrador(nome, email, telefone, cpf, cep, apartamento, fotoURL) {
-        const id = uuidv4();
-        const timestamp = new Date().toLocaleString();
-        const user = "System"; // Replace with actual user authentication if available
-        const novoAdministrador = {
-            id: id,
-            nome: nome,
-            sobrenome: sobrenome,
-            email: email,
-            telefone: telefone,
-            cpf: cpf,
-            cep: cep,
-            apartamento: apartamento,
-            foto: fotoURL,
-            dataCadastro: timestamp,
-            cadastradoPor: user
+        reader.onload = () => {
+            resolve(reader.result);
         };
 
-        administrador.push(novoAdministrador);
-        localStorage.setItem('administrador', JSON.stringify(administrador));
-        atualizarListaAdministrador();
-        administradorForm.style.display = 'none';
-        administradorForm.reset();
-        showNotification('Administrador cadastrado com sucesso!', 'success');
+        reader.onerror = (error) => {
+            reject(error);
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
+
+    let imageBase64 = await convertFileToBase64(fotoInput);
+
+    const imageUpload = imageBase64.split(",")[1]; // mantém só o conteúdo base64
+
+    const adminData = {
+        name: nome,
+        lastName: sobrenome,
+        email: email,
+        phone: telefone,
+        cpf: cpf,
+        cep: cep,
+        houseNumber: parseInt(apartamento),
+        image: fotoInput.files[0]?.name || "",
+        imageUpload: imageUpload,
+        password: senha,
+    };
+
+    try {
+        let url = "https://localhost:7100/users/v1/administrator/register";
+        let method = "POST";
+
+        const form = document.getElementById("formCadastroAdministrador");
+        const modo = form.getAttribute("data-modo");
+
+        if (modo === "editar") {
+            const emailParaAtualizar = form.getAttribute("data-email");
+            url = `https://localhost:7100/users/v1/administrator/update/${emailParaAtualizar}`;
+            method = "PUT";
+        }
+
+        const response = await fetch(url, {
+        method: method,
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(adminData)
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            alert("Erro ao cadastrar administrador: " + error);
+        } else {
+            alert("Administrador cadastrado com sucesso!");
+            document.getElementById("previewFoto").src = "";              
+            this.reset();
+            form.removeAttribute("data-modo");
+            form.removeAttribute("data-email");
+        }
+    } catch (error) {
+        alert("Erro na requisição: " + error.message);
     }
+});
 
     function atualizarListaAdministrador() {
         console.log(administrador);  // Adicione um log para verificar o conteúdo dos administradores

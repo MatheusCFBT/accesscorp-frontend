@@ -185,11 +185,11 @@ document.addEventListener('DOMContentLoaded', () => {
         cadastroForm.style.display = 'none';
         visitanteForm.reset();
         showNotification('Visitante cadastrado com sucesso!', 'success');
-    }
+    },
 
     function atualizarListaVisitantes() {
         atualizarTabela(visitantes);
-    }
+    },
 
     visitantesTableBody.addEventListener('click', function (event) {
         if (event.target.classList.contains('view-profile')) {
@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = event.target.dataset.id;
             showQRCodeConfirmation(id);
         }
-    });
+    }));
 
     function showQRCodeConfirmation(id) {
         const visitante = visitantes.find(visitante => visitante.id === id);
@@ -1268,17 +1268,17 @@ document.addEventListener('DOMContentLoaded', () => {
     atualizarListaVisitantes();
     atualizarListaEntregas();
 
-    // Adiciona funcionalidade ao botão "Sair"
-    const sairBtn = document.querySelector('.menu li[data-section="sair"]');
-    sairBtn.addEventListener('click', function(event) {
-        event.preventDefault();
-        showConfirmationModal('Tem certeza que deseja sair?', () => {
-            // Aqui você pode adicionar a lógica para sair do sistema
-            // Por exemplo, redirecionar para a página de login:
-            // window.location.href = 'pagina_de_login.html';
-            showNotification('Você saiu do sistema.', 'info'); // Exibe uma notificação
-        });
-    });
+     // Adiciona funcionalidade ao botão "Sair"
+     const sairBtn = document.querySelector('.menu li[data-section="sair"]');
+     sairBtn.addEventListener('click', function(event) {
+         event.preventDefault();
+         showConfirmationModal('Tem certeza que deseja sair?', () => {
+             // Aqui você pode adicionar a lógica para sair do sistema
+             // Por exemplo, redirecionar para a página de login:
+             // window.location.href = 'pagina_de_login.html';
+             showNotification('Você saiu do sistema.', 'info'); // Exibe uma notificação
+         });
+     });
 });
 export const config = {
     stageWidth: 800,
